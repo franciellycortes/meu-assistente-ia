@@ -53,7 +53,6 @@ ALGORITMO MENTAL:
 - Fase 3: Sugestão Prática: Termina sempre com uma sugestão de intervenção para a próxima sessão.
 
 FORMATO DE RESPOSTA: Use títulos em negrito e listas. Apresente divergências teóricas se existirem.
-"""
 
 # 3. CONEXÃO COM A API E MODELO
 CHAVE_API = st.secrets["GOOGLE_API_KEY"]
@@ -117,5 +116,6 @@ if prompt := st.chat_input("Descreva o caso clínico..."):
             
     except Exception as e:
         st.error(f"Erro clínico: {e}")
+
 
 
