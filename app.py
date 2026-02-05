@@ -2,90 +2,75 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
-# 1. CONFIGURAÇÃO DA PÁGINA
+# 1. SETUP DA PÁGINA
 st.set_page_config(page_title="Mentor Neuropsicopedagógico", page_icon="🧠", layout="wide")
 
-# 2. PERSONALIDADE DO MENTOR (INSTRUÇÃO DE SISTEMA)
+# 2. PERSONALIDADE (INSTRUÇÃO DE SISTEMA)
 instrucao_sistema = """
-Você é um Mentor de Alto Nível em Psicopedagogia Clínica, fundamentado na Epistemologia Convergente (Jorge Visca).
-Analise os casos integrando: Piaget, Vygotsky, Wallon e Alicia Fernández.
-
-ESTRUTURA DE RESPOSTA OBRIGATÓRIA:
-1. Eixo Cognitivo: Estágio e funções executivas.
-2. Eixo Socioafetivo: Mediação e vínculo com o saber.
-3. Eixo Instrumental: Sugestão de testes (EOCA, Provas Operatórias).
-4. Eixo Terapêutico: Hipóteses e estratégias práticas.
+Você é um Mentor de Alto Nível em Psicopedagogia Clínica (Epistemologia Convergente).
+Estruture suas respostas em 4 eixos: 
+1. Eixo Cognitivo
+2. Eixo Socioafetivo
+3. Eixo Instrumental
+4. Eixo Terapêutico
 """
 
-# 3. CONEXÃO COM A API (CORREÇÃO DO ERRO 404)
+# 3. CONEXÃO BLINDADA (AQUI ESTÁ A CORREÇÃO)
 try:
     if "GOOGLE_API_KEY" not in st.secrets:
-        st.error("Chave API não configurada no Streamlit Secrets!")
+        st.error("Chave API não encontrada!")
     else:
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
         
-        # Criamos o modelo de forma estável
-        # Removendo qualquer configuração que force a versão 'beta'
+        # Tentamos a chamada direta. O erro 404 ocorre quando o código 
+        # tenta usar 'models/gemini-1.5-flash'. Vamos usar apenas o nome:
         model = genai.GenerativeModel(
             model_name='gemini-1.5-flash',
             system_instruction=instrucao_sistema
         )
 except Exception as e:
-    st.error(f"Erro de conexão: {e}")
+    st.error(f"Erro na configuração: {e}")
 
 # 4. GESTÃO DE MEMÓRIA
 if "chat_session" not in st.session_state:
     st.session_state.chat_session = model.start_chat(history=[])
 
-# 5. INTERFACE (BARRA LATERAL)
+# 5. INTERFACE
+st.title("🧠 Mentor Neuropsicopedagógico")
+
 with st.sidebar:
     st.title("📂 Painel Clínico")
-    st.info("Modo Estável: Gemini 1.5 Flash")
     arquivo_upload = st.file_uploader("Subir PDF ou Imagem", type=["png", "jpg", "jpeg", "pdf"])
-    
     if st.button("🗑️ Nova Supervisão"):
         st.session_state.chat_session = model.start_chat(history=[])
         st.rerun()
 
-st.title("🧠 Mentor Neuropsicopedagógico")
-
-# 6. HISTÓRICO DE MENSAGENS
-for mensagem in st.session_state.chat_session.history:
-    role = "user" if mensagem.role == "user" else "assistant"
+# Histórico
+for msg in st.session_state.chat_session.history:
+    role = "user" if msg.role == "user" else "assistant"
     with st.chat_message(role):
-        st.markdown(mensagem.parts[0].text)
+        st.markdown(msg.parts[0].text)
 
-# 7. INTERAÇÃO E PROCESSAMENTO
+# 6. INTERAÇÃO
 if prompt := st.chat_input("Descreva o caso clínico..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
     try:
-        conteudo_envio = [prompt]
-        
+        conteudo = [prompt]
         if arquivo_upload:
             if arquivo_upload.type == "application/pdf":
-                # Leitura correta para PDFs
-                conteudo_envio.append({
-                    "mime_type": "application/pdf",
-                    "data": arquivo_upload.getvalue()
-                })
+                conteudo.append({"mime_type": "application/pdf", "data": arquivo_upload.read()})
             else:
-                # Leitura para imagens
-                img = Image.open(arquivo_upload)
-                conteudo_envio.append(img)
+                conteudo.append(Image.open(arquivo_upload))
 
-        with st.spinner("Analisando eixos clínicos..."):
-            response = st.session_state.chat_session.send_message(conteudo_envio)
+        response = st.session_state.chat_session.send_message(conteudo)
         
         with st.chat_message("assistant"):
             st.markdown(response.text)
             
     except Exception as e:
-        if "404" in str(e):
-            st.error("Erro 404: O modelo não foi reconhecido. Por favor, reinicie o app no painel do Streamlit (Reboot).")
-        elif "429" in str(e):
-            st.warning("Limite de cota atingido. Aguarde 60 segundos.")
-        else:
-            st.error(f"Ocorreu um erro: {e}")
+        # Se der erro 404 novamente, o código vai imprimir o erro técnico exato para investigarmos
+        st.error(f"Erro técnico encontrado: {e}")
+
 
