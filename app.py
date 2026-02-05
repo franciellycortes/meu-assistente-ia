@@ -83,3 +83,14 @@ if prompt := st.chat_input("Descreva o caso clínico..."):
         if arquivo_upload:
             if arquivo_upload.type == "application/pdf":
                 conteudo_envio.append({"mime_type": "application/pdf", "data": arquivo_upload.getvalue()})
+            else:
+                conteudo_envio.append(Image.open(arquivo_upload))
+
+        with st.spinner("Analisando eixos clínicos..."):
+            response = st.session_state.chat_session.send_message(conteudo_envio)
+        
+        with st.chat_message("assistant"):
+            st.markdown(response.text)
+            
+    except Exception as e:
+        st.error(f"Erro no processamento: {e}")
