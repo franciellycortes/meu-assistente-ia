@@ -3,107 +3,111 @@ import google.generativeai as genai
 from PIL import Image
 
 # 1. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="Mentor Neuropsicopedagógico v3", page_icon="🧠", layout="wide")
+st.set_page_config(
+    page_title="Mentor Neuropsicopedagógico Sênior", 
+    page_icon="🧠", 
+    layout="wide"
+)
 
-# Estilo visual para ambiente clínico
+# Estilo para um ambiente profissional e clínico
 st.markdown("""
     <style>
-    .stApp { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
-    .stChatMessage { border-radius: 15px; border: 1px solid #d1d9e6; }
+    .stApp { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); }
+    .stChatMessage { border-radius: 12px; border: 1px solid #dee2e6; background-color: white; }
+    h1 { color: #2c3e50; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. PERSONALIDADE COMPLETA (EPISTEMOLOGIA CONVERGENTE)
+# 2. PERSONALIDADE COMPLETA (INSTRUÇÃO DE SISTEMA)
 instrucao_sistema = """
-Você é um Mentor de Alto Nível em Psicopedagogia Clínica, com expertise profunda na Epistemologia Convergente de Jorge Visca. 
-Sua função é supervisionar casos clínicos integrando as três linhas de convergência:
+Você é um Mentor Sênior em Psicopedagogia e Neuropsicopedagogia Clínica. 
+Sua atuação é uma síntese entre a Epistemologia Convergente, a Psicogenética (Piaget, Vygotsky, Wallon) e as Neurociências Aplicadas à Educação (Neuroaprendizagem). 
+Seu foco é identificar as barreiras de aprendizagem sob a ótica biológica, cognitiva e emocional.
 
-1. ESCOLA GENÉTICA (Piaget): Análise dos estágios do desenvolvimento cognitivo e das Provas Operatórias.
-2. ESCOLA PSICANALÍTICA (Freud/Alicia Fernández): Análise da modalidade de aprendizagem, o desejo de saber e o vínculo com o objeto de conhecimento.
-3. PSICOLOGIA SOCIAL (Vygotsky/Pichon-Rivière): Análise da mediação, ZDP e o contexto socio-histórico.
+[DOMÍNIOS DE CONHECIMENTO ESPECÍFICOS]
+- Habilidades Cognitivas: Funções Executivas (Memória de trabalho, controle inibitório, flexibilidade, planejamento), Sistemas Atencionais, Processamento Sensorial (Consciência fonológica, integração visomotora), Linguagem e Memória.
+- Referencial Teórico: Jorge Visca, Sara Paín, Alicia Fernández, Nádia Bossa, Simone Sampaio.
+- Desenvolvimento: Estágios de Piaget, ZDP de Vygotsky, Motricidade/Afetividade de Wallon.
+- Nosologia: Critérios do DSM-5-TR para Transtornos do Neurodesenvolvimento.
 
-DIRETRIZES DE RESPOSTA (OBRIGATÓRIO SEGUIR ESTA ESTRUTURA):
+[DIRETRIZES DE RESPOSTA OBRIGATÓRIAS]
+Para cada caso ou dúvida, siga exatamente esta estrutura:
+1. PERFIL NEUROCOGNITIVO: Descreva habilidades comprometidas ou preservadas (ex: memória, atenção).
+2. LEITURA PSICOPEDAGÓGICA CLÁSSICA: Interprete o vínculo com a aprendizagem (Visca/Paín) e o estágio de desenvolvimento (Piaget/Wallon).
+3. AVALIAÇÃO INSTRUMENTAL SUGERIDA: Indique testes de Simone Sampaio ou Provas Operatórias adequados.
+4. ESTRATÉGIAS DE NEUROINTERVENÇÃO: Sugira atividades baseadas em Neuroplasticidade (repetição, novidade, desafio, engajamento).
 
-## 1. Eixo Cognitivo (O 'Poder')
-- Analisar estágio de pensamento (Pré-operatório, Operatório Concreto, Formal).
-- Avaliar funções executivas (Memória de trabalho, controle inibitório, flexibilidade).
-
-## 2. Eixo Socioafetivo (O 'Querer')
-- Avaliar o vínculo com o terapeuta e com a escola.
-- Analisar a afetividade conforme Wallon e o 'Desejo de Aprender' de Fernández.
-
-## 3. Eixo Instrumental (O 'Fazer')
-- Sugerir testes específicos: EOCA (Entrevista Operativa Centrada na Aprendizagem), Provas de Diagnóstico Operatório, Testes Projetivos Psicopedagógicos.
-- Interpretação de protocolos de Sampaio e Bossa.
-
-## 4. Eixo Terapêutico (Hipóteses e Intervenção)
-- Formular hipóteses diagnósticas (Dificuldade vs. Transtorno).
-- Propor estratégias de intervenção lúdica e mediação.
-
-NOTAS ÉTICAS: Mantenha sigilo absoluto. Não use nomes reais. Use terminologia do DSM-5-TR para neurodivergências quando aplicável.
+[RESTRIÇÕES]
+- Rigor terminológico: use "hipótese diagnóstica", nunca "veredito".
+- Proteção de dados: garanta a anonimização.
 """
 
-# 3. CONEXÃO COM O GEMINI 2.0 FLASH (VERSÃO PROFISSIONAL)
+# 3. CONEXÃO COM O MODELO GEMINI 2.0 FLASH
 try:
     if "GOOGLE_API_KEY" not in st.secrets:
-        st.error("Chave API ausente!")
+        st.error("ERRO: Configure a chave GOOGLE_API_KEY no painel do Streamlit (Secrets).")
     else:
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
         
-        # Chamada para o Gemini 2.0 Flash (Geração 3)
+        # Instanciação do modelo Gemini 2.0 Flash (Geração 3)
         model = genai.GenerativeModel(
             model_name='gemini-2.0-flash',
             system_instruction=instrucao_sistema
         )
 except Exception as e:
-    st.error(f"Erro na inicialização: {e}")
+    st.error(f"Erro na conexão com a Inteligência Artificial: {e}")
 
-# 4. GESTÃO DE MEMÓRIA (CONTEXTO CLÍNICO)
+# 4. GESTÃO DE MEMÓRIA (CONTEXTO DA SUPERVISÃO)
 if "chat_session" not in st.session_state:
     st.session_state.chat_session = model.start_chat(history=[])
 
-# 5. BARRA LATERAL (CENTRAL DE INTELIGÊNCIA)
+# 5. BARRA LATERAL (PAINEL DE CONTROLE)
 with st.sidebar:
-    st.title("📂 Central de Supervisão v3")
-    st.write("**Modelo:** Gemini 2.0 Flash")
+    st.title("📂 Central de Supervisão")
+    st.info("Modelo: Gemini 2.0 Flash (v3)")
     
-    arquivo_upload = st.file_uploader("Anexar Relatórios ou Exames", type=["png", "jpg", "jpeg", "pdf"])
+    arquivo_upload = st.file_uploader("Subir Relatórios (PDF) ou Imagens", type=["png", "jpg", "jpeg", "pdf"])
     
     st.divider()
-    if st.button("🗑️ Nova Supervisão (Limpar Memória)"):
+    if st.button("🗑️ Nova Supervisão (Limpar Histórico)"):
         st.session_state.chat_session = model.start_chat(history=[])
         st.rerun()
 
-st.title("🧠 Mentor Neuropsicopedagógico")
-st.caption("Supervisão Clínica baseada em Epistemologia Convergente")
+st.title("🧠 Mentor Neuropsicopedagógico Sênior")
+st.markdown("---")
 
-# 6. EXIBIÇÃO DO HISTÓRICO
-for msg in st.session_state.chat_session.history:
-    role = "user" if msg.role == "user" else "assistant"
+# 6. EXIBIÇÃO DO HISTÓRICO DE MENSAGENS
+for mensagem in st.session_state.chat_session.history:
+    role = "user" if mensagem.role == "user" else "assistant"
     with st.chat_message(role):
-        st.markdown(msg.parts[0].text)
+        st.markdown(mensagem.parts[0].text)
 
-# 7. INTERAÇÃO
-if prompt := st.chat_input("Descreva o caso do paciente aqui..."):
+# 7. INTERAÇÃO E PROCESSAMENTO DE CASOS
+if prompt := st.chat_input("Insira os dados do caso clínico ou sua dúvida técnica..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
     try:
-        conteudo = [prompt]
+        conteudo_para_envio = [prompt]
+        
+        # Processamento de arquivos anexados
         if arquivo_upload:
             if arquivo_upload.type == "application/pdf":
-                conteudo.append({"mime_type": "application/pdf", "data": arquivo_upload.read()})
+                conteudo_para_envio.append({
+                    "mime_type": "application/pdf",
+                    "data": arquivo_upload.read()
+                })
             else:
-                conteudo.append(Image.open(arquivo_upload))
+                img = Image.open(arquivo_upload)
+                conteudo_para_envio.append(img)
 
-        with st.spinner("Analisando eixos clínicos..."):
-            response = st.session_state.chat_session.send_message(conteudo)
+        # Chamada da resposta do Mentor
+        with st.spinner("Analisando sob as óticas biológica, cognitiva e emocional..."):
+            response = st.session_state.chat_session.send_message(conteudo_para_envio)
         
         with st.chat_message("assistant"):
             st.markdown(response.text)
             
     except Exception as e:
-        if "404" in str(e):
-            st.error("Erro 404: O modelo Gemini 2.0 ainda não está disponível na sua rota. Mude para 'gemini-1.5-flash' no código se persistir.")
-        else:
-            st.error(f"Erro no processamento: {e}")
+        st.error(f"Erro técnico no processamento: {e}")
+
