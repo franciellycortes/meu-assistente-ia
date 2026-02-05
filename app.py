@@ -14,7 +14,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. PERSONALIDADE (CORRIGIDA COM ASPAS TRIPLAS)
+# 2. PERSONALIDADE (INSTRUÇÃO DE SISTEMA)
 instrucao_sistema = """
 Você é um Mentor de Alto Nível em Psicopedagogia Clínica. Sua prática é fundamentada na Epistemologia Convergente (Jorge Visca), integrando Piaget, Vygotsky e Wallon. Utilize o DSM-5-TR e as Neurociências para embasamento biológico, mas mantenha a escuta clínica sobre a subjetividade do aprender.
 
@@ -24,18 +24,21 @@ ESTRUTURA DE RESPOSTA OBRIGATÓRIA:
 3. Eixo Instrumental (Sampaio/Visca): Sugestão de testes (EOCA, Provas Operatórias, etc).
 4. Eixo Terapêutico: Hipóteses Diagnósticas e sugestões de intervenção prática.
 
-RESTRIÇÕES: Trate dados de forma anônima e ofereça apenas Hipóteses Diagnósticas.
+RESTRIÇÕES: Trate dados de forma anônima e nunca dê diagnósticos definitivos; ofereça apenas Hipóteses Diagnósticas.
 """
 
-# 3. CONEXÃO COM A API (NOME DO MODELO CORRIGIDO PARA EVITAR ERRO 404)
-CHAVE_API = st.secrets["GOOGLE_API_KEY"]
-genai.configure(api_key=CHAVE_API)
-
-# Aqui removemos o "models/" que causava o erro 404 em algumas versões
-model = genai.GenerativeModel(
-    model_name='gemini-1.5-flash',
-    system_instruction=instrucao_sistema
-)
+# 3. CONEXÃO COM A API
+try:
+    CHAVE_API = st.secrets["GOOGLE_API_KEY"]
+    genai.configure(api_key=CHAVE_API)
+    
+    # Modelo configurado corretamente para evitar erro 404
+    model = genai.GenerativeModel(
+        model_name='gemini-1.5-flash',
+        system_instruction=instrucao_sistema
+    )
+except Exception as e:
+    st.error(f"Erro na configuração da API: {e}")
 
 # 4. GESTÃO DE MEMÓRIA
 if "chat_session" not in st.session_state:
@@ -58,7 +61,7 @@ for mensagem in st.session_state.chat_session.history:
     with st.chat_message(role):
         st.markdown(mensagem.parts[0].text)
 
-# 7. INTERAÇÃO E TRATAMENTO DE ERROS (INCLUINDO ERRO 429)
+# 7. INTERAÇÃO
 if prompt := st.chat_input("Descreva o caso do paciente..."):
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -78,7 +81,6 @@ if prompt := st.chat_input("Descreva o caso do paciente..."):
             
     except Exception as e:
         if "429" in str(e):
-            st.warning("O Google está processando muitas requisições. Por favor, aguarde 30 segundos e clique em enviar novamente.")
+            st.warning("O Google está processando muitas requisições. Aguarde 30 segundos e tente novamente.")
         else:
-            st.error(f"Erro clínico: {e}")
-
+            st.error(f"Ocorreu um problema: {e}")
