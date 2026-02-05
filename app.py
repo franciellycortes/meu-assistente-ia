@@ -2,7 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
-# 1. CONFIGURAÇÃO DA PÁGINA E ESTILO VISUAL
+# 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="Mentor Neuropsicopedagógico", page_icon="🧠", layout="wide")
 
 st.markdown("""
@@ -14,74 +14,63 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. DEFINIÇÃO DA PERSONALIDADE (MENTOR DE ALTO NÍVEL)
-instrucao_sistema = """
-Você é um Mentor de Alto Nível em Psicopedagogia Clínica. Sua prática é fundamentada na Epistemologia Convergente (Jorge Visca), integrando Piaget, Vygotsky e Wallon. Utilize o DSM-5-TR e as Neurociências para embasamento biológico, mas mantenha a escuta clínica sobre a subjetividade do aprender.
+# 2. PERSONALIDADE (INSTRUÇÃO DE SISTEMA)
+instrucao_sistema = (
+    "Você é um Mentor Sênior em Psicopedagogia Clínica (Epistemologia Convergente). "
+    "Sempre responda estruturando em 4 eixos: 1. Eixo Cognitivo (Piaget/Neuro), "
+    "2. Eixo Socioafetivo (Vygotsky/Wallon/Fernández), 3. Eixo Instrumental (Sampaio/Visca), "
+    "4. Eixo Terapêutico (Hipóteses e Intervenção). Trate dados de forma anônima."
+)
 
-ESTRUTURA DE RESPOSTA OBRIGATÓRIA:
-1. Eixo Cognitivo (Piaget/Neuro): Estágio de desenvolvimento e funções executivas.
-2. Eixo Socioafetivo (Vygotsky/Wallon/Fernández): Papel da mediação e afetividade.
-3. Eixo Instrumental (Sampaio/Visca): Sugestão de testes (EOCA, Provas Operatórias, etc).
-4. Eixo Terapêutico: Hipóteses Diagnósticas e sugestões de intervenção prática.
-
-RESTRIÇÕES: Trate dados de forma anônima e ofereça apenas Hipóteses Diagnósticas.
-"""
-
-# 3. CONEXÃO COM A API E CONFIGURAÇÃO DO MODELO
+# 3. CONEXÃO COM A API
 try:
     CHAVE_API = st.secrets["GOOGLE_API_KEY"]
     genai.configure(api_key=CHAVE_API)
     
-    # Usando o nome direto do modelo para evitar o erro 404
+    # Modelo atualizado para a versão estável (sem prefixo v1beta)
     model = genai.GenerativeModel(
         model_name='gemini-1.5-flash',
         system_instruction=instrucao_sistema
     )
 except Exception as e:
-    st.error(f"Erro na chave API ou Configuração: {e}")
+    st.error(f"Erro na API: {e}")
 
-# 4. GESTÃO DE MEMÓRIA (CHAT)
+# 4. GESTÃO DE MEMÓRIA
 if "chat_session" not in st.session_state:
     st.session_state.chat_session = model.start_chat(history=[])
 
-# 5. BARRA LATERAL (VOLTOU!)
+# 5. BARRA LATERAL (Painel Clínico)
 with st.sidebar:
     st.title("📂 Painel Clínico")
-    st.write("Use este espaço para carregar documentos e imagens para análise.")
-    arquivo_upload = st.file_uploader("Subir PDF, JPG ou PNG", type=["png", "jpg", "jpeg", "pdf"])
+    arquivo_upload = st.file_uploader("Subir PDF ou Imagem", type=["png", "jpg", "jpeg", "pdf"])
     
     st.divider()
     if st.button("🗑️ Limpar Supervisão"):
         st.session_state.chat_session = model.start_chat(history=[])
         st.rerun()
 
-# 6. CORPO PRINCIPAL
 st.title("🧠 Mentor Neuropsicopedagógico")
 st.subheader("Consultoria Clínica Especializada")
 
-# Exibição das mensagens anteriores
+# 6. EXIBIÇÃO DO HISTÓRICO
 for mensagem in st.session_state.chat_session.history:
     role = "user" if mensagem.role == "user" else "assistant"
     with st.chat_message(role):
         st.markdown(mensagem.parts[0].text)
 
-# 7. INTERAÇÃO E PROCESSAMENTO
-if prompt := st.chat_input("Descreva o caso clínico ou anexe um arquivo ao lado..."):
+# 7. INTERAÇÃO
+if prompt := st.chat_input("Descreva o caso do paciente..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
     try:
         conteudo_envio = [prompt]
-        
-        # Processamento de arquivos anexados
         if arquivo_upload:
             if arquivo_upload.type == "application/pdf":
                 conteudo_envio.append({"mime_type": "application/pdf", "data": arquivo_upload.read()})
             else:
-                img = Image.open(arquivo_upload)
-                conteudo_envio.append(img)
+                conteudo_envio.append(Image.open(arquivo_upload))
 
-        # Resposta da IA
         response = st.session_state.chat_session.send_message(conteudo_envio)
         
         with st.chat_message("assistant"):
@@ -89,6 +78,6 @@ if prompt := st.chat_input("Descreva o caso clínico ou anexe um arquivo ao lado
             
     except Exception as e:
         if "429" in str(e):
-            st.warning("O Google está com tráfego intenso. Aguarde 30 segundos e tente reenviar.")
+            st.warning("Muitas tentativas seguidas. Aguarde 60 segundos para o Google liberar seu acesso gratuito.")
         else:
-            st.error(f"Erro clínico: {e}")
+            st.error(f"Ocorreu um erro: {e}")
