@@ -2,81 +2,82 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
-# 1. CONFIGURAÇÃO DA PÁGINA E VISUAL
-st.set_page_config(page_title="Central IA Francielly", page_icon="🧠", layout="centered")
+# 1. CONFIGURAÇÃO DA PÁGINA
+st.set_page_config(page_title="Mentor Neuropsicopedagógico", page_icon="🧠", layout="wide")
 
-st.markdown("""
-    <style>
-    .stApp { background: linear-gradient(135deg, #e0f7fa 0%, #f3e5f5 50%, #fce4ec 100%); }
-    [data-testid="stSidebar"] { background-color: #f1f8e9 !important; }
-    .stChatMessage { border-radius: 15px; }
-    </style>
-    """, unsafe_allow_html=True)
+# 2. PERSONALIDADE TÉCNICA (INSTRUÇÃO DE SISTEMA)
+instrucao_sistema = """
+Você é um Mentor de Alto Nível em Psicopedagogia Clínica, fundamentado na Epistemologia Convergente (Jorge Visca).
+Integre: Piaget (Cognição), Vygotsky (ZDP), Wallon (Afetividade), Alicia Fernández (Desejo de Aprender) e Neurociências (DSM-5-TR).
 
-# 2. CONEXÃO E FERRAMENTAS (Google Search)
-CHAVE_API = st.secrets["GOOGLE_API_KEY"]
-genai.configure(api_key=CHAVE_API)
+ESTRUTURA DE RESPOSTA:
+1. Eixo Cognitivo: Estágio e funções executivas.
+2. Eixo Socioafetivo: Mediação e vínculo com o saber.
+3. Eixo Instrumental: Sugestão de testes (EOCA, Provas Operatórias).
+4. Eixo Terapêutico: Hipóteses e estratégias práticas.
+"""
 
-# Aqui ativamos a "Personalidade" e a "Pesquisa Google"
-instrucao_sistema = "Você é o Assistente da Francielly. Você é inteligente, gentil e sempre busca informações atualizadas. Se não souber algo, use a pesquisa do Google."
+# 3. CONFIGURAÇÃO DO MODELO COM GOOGLE SEARCH
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    
+    # Criamos o modelo chamando o nome correto para evitar o erro 404
+    # Adicionamos a ferramenta de pesquisa (Google Search) aqui
+    model = genai.GenerativeModel(
+        model_name='gemini-2.0-flash',
+        system_instruction=instrucao_sistema,
+        tools=[{"google_search_retrieval": {}}] 
+    )
+except Exception as e:
+    st.error(f"Erro na configuração: {e}")
 
-model = genai.GenerativeModel(
-    model_name='models/gemini-1.5-flash',
-    system_instruction=instrucao_sistema,
-    tools=[{"google_search_retrieval": {}}] # Ativa a pesquisa em tempo real
-)
-
-# 3. MEMÓRIA (Estado da Sessão)
+# 4. GESTÃO DE MEMÓRIA (CONTEXTO)
 if "chat_session" not in st.session_state:
-    # Inicia a sessão de chat com memória nativa do Google
     st.session_state.chat_session = model.start_chat(history=[])
 
-# 4. BARRA LATERAL
+# 5. BARRA LATERAL COMPLETA
 with st.sidebar:
-    st.title("🛠️ Painel de Funções")
-    arquivo_upload = st.file_uploader("Analisar Imagem ou PDF", type=["png", "jpg", "jpeg", "pdf"])
+    st.title("📂 Central de Inteligência")
+    st.info("Modelo: Gemini 2.0 Flash (Geração 3)")
+    
+    arquivo_upload = st.file_uploader("Subir Relatório ou Imagem", type=["png", "jpg", "jpeg", "pdf"])
     
     st.divider()
-    if st.button("🗑️ Limpar Memória"):
+    if st.button("🗑️ Limpar Contexto (Nova Supervisão)"):
         st.session_state.chat_session = model.start_chat(history=[])
         st.rerun()
-    
-    # Função de Download do Histórico
-    if len(st.session_state.chat_session.history) > 0:
-        texto_chat = ""
-        for msg in st.session_state.chat_session.history:
-            texto_chat += f"{msg.role}: {msg.parts[0].text}\n"
-        st.download_button("📥 Baixar Conversa", texto_chat, file_name="conversa_ia.txt")
 
-st.title("✨ Minha IA Completa")
+st.title("🧠 Mentor Neuropsicopedagógico")
 
-# 5. EXIBIR HISTÓRICO (Memória de Contexto)
+# 6. EXIBIÇÃO DO HISTÓRICO
 for mensagem in st.session_state.chat_session.history:
-    with st.chat_message("user" if mensagem.role == "user" else "assistant"):
+    role = "user" if mensagem.role == "user" else "assistant"
+    with st.chat_message(role):
         st.markdown(mensagem.parts[0].text)
 
-# 6. LÓGICA DE INTERAÇÃO
-if prompt := st.chat_input("Como posso ajudar hoje?"):
+# 7. INTERAÇÃO E PROCESSAMENTO
+if prompt := st.chat_input("Descreva o caso clínico..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
     try:
-        conteudo_envio = [prompt]
-        
-        # Processamento de Arquivos
+        conteudo = [prompt]
         if arquivo_upload:
             if arquivo_upload.type == "application/pdf":
-                conteudo_envio.append({"mime_type": "application/pdf", "data": arquivo_upload.read()})
+                conteudo.append({"mime_type": "application/pdf", "data": arquivo_upload.read()})
             else:
-                img = Image.open(arquivo_upload)
-                conteudo_envio.append(img)
+                conteudo.append(Image.open(arquivo_upload))
 
-        # Resposta com Memória e Pesquisa
-        response = st.session_state.chat_session.send_message(conteudo_envio)
+        # O modelo processará o prompt usando a memória e a pesquisa em tempo real
+        response = st.session_state.chat_session.send_message(conteudo)
         
         with st.chat_message("assistant"):
             st.markdown(response.text)
             
     except Exception as e:
-        st.error(f"Erro: {e}")
-
+        if "429" in str(e):
+            st.warning("Limite de cota do Gemini 2.0 atingido. Aguarde 60 segundos.")
+        elif "404" in str(e):
+            st.error("Erro 404: O modelo não suportou esta combinação de ferramentas no momento.")
+        else:
+            st.error(f"Ocorreu um erro: {e}")
