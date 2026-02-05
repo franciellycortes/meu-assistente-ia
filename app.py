@@ -2,74 +2,48 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
-# 1. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="Mentor Neuropsicopedagógico", page_icon="🧠", layout="wide")
+# 1. CONFIGURAÇÃO
+st.set_page_config(page_title="Mentor Neuropsicopedagógico", page_icon="🧠")
 
-st.markdown("""
-    <style>
-    .stApp { background: linear-gradient(135deg, #e0f7fa 0%, #f3e5f5 50%, #fce4ec 100%); }
-    [data-testid="stSidebar"] { background-color: #f1f8e9 !important; }
-    .stChatMessage { border-radius: 15px; border: 1px solid #d1d9e6; background-color: white; }
-    h1 { color: #4a148c; }
-    </style>
-    """, unsafe_allow_html=True)
-
-# 2. PERSONALIDADE (INSTRUÇÃO SIMPLIFICADA PARA EVITAR ERRO DE SINTAXE)
+# 2. PERSONALIDADE
 instrucao = (
     "Você é um Mentor Sênior em Psicopedagogia Clínica. "
-    "Sempre responda estruturando em 4 eixos: 1. Eixo Cognitivo, "
-    "2. Eixo Socioafetivo, 3. Eixo Instrumental, 4. Eixo Terapêutico. "
-    "Baseie-se em Visca, Piaget, Vygotsky e Wallon."
+    "Estruture as respostas em 4 eixos: Cognitivo, Socioafetivo, Instrumental e Terapêutico."
 )
 
-# 3. CONEXÃO COM A API (CORREÇÃO DO ERRO 404)
+# 3. CONEXÃO COM A API (AJUSTADO PARA GEMINI 2.0)
 try:
-    CHAVE_API = st.secrets["GOOGLE_API_KEY"]
-    genai.configure(api_key=CHAVE_API)
-    # Chamada sem o prefixo 'models/' e sem forçar v1beta
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    # Mudança aqui: Nome oficial para o Gemini 2.0
+    model = genai.GenerativeModel('gemini-2.0-flash') 
 except Exception as e:
     st.error(f"Erro na conexão: {e}")
 
-# 4. GESTÃO DE MEMÓRIA
-if "chat_session" not in st.session_state:
-    st.session_state.chat_session = model.start_chat(history=[])
+# 4. CHAT
+if "chat" not in st.session_state:
+    st.session_state.chat = model.start_chat(history=[])
 
-# 5. BARRA LATERAL (PAINEL CLÍNICO)
+st.title("🧠 Mentor Gemini 2.0")
+
+# 5. BARRA LATERAL
 with st.sidebar:
     st.title("📂 Painel Clínico")
-    st.write("Carregue documentos ou imagens abaixo:")
-    arquivo_upload = st.file_uploader("Subir Arquivo", type=["png", "jpg", "jpeg", "pdf"])
-    st.divider()
-    if st.button("🗑️ Limpar Supervisão"):
-        st.session_state.chat_session = model.start_chat(history=[])
-        st.rerun()
+    arquivo = st.file_uploader("Subir arquivo", type=["png", "jpg", "jpeg", "pdf"])
 
-st.title("🧠 Mentor Neuropsicopedagógico")
-st.subheader("Consultoria Clínica Especializada")
-
-# Exibição do histórico
-for mensagem in st.session_state.chat_session.history:
-    role = "user" if mensagem.role == "user" else "assistant"
-    with st.chat_message(role):
-        st.markdown(mensagem.parts[0].text)
-
-# 6. INTERAÇÃO E TRATAMENTO DE ERROS (ERRO 429)
-if prompt := st.chat_input("Descreva o caso do paciente..."):
+# 6. PROCESSAMENTO
+if prompt := st.chat_input("Descreva o caso..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
     try:
-        # Mesclamos a instrução com o prompt para garantir a personalidade
-        prompt_completo = f"{instrucao}\n\nAnalise o seguinte caso: {prompt}"
-        
-        response = st.session_state.chat_session.send_message(prompt_completo)
-        
+        # No 2.0, a instrução vai dentro do envio se não configurada no Model
+        full_prompt = f"{instrucao}\n\nCaso: {prompt}"
+        response = st.session_state.chat.send_message(full_prompt)
         with st.chat_message("assistant"):
             st.markdown(response.text)
-            
     except Exception as e:
         if "429" in str(e):
-            st.warning("O Google excedeu o limite de uso temporário. Aguarde 2 minutos e tente reenviar.")
+            st.warning("ERRO DE COTA: O Gemini 2.0 Gratuito tem limites baixos. Tente mudar para 'gemini-1.5-flash' no código se este erro persistir.")
         else:
-            st.error(f"Ocorreu um problema: {e}")
+            st.error(f"Erro: {e}")
+
