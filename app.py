@@ -1,89 +1,63 @@
 import streamlit as st
 import google.generativeai as genai
-from PIL import Image
 
-# 1. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="Mentor Neuropsicopedagógico Sênior", page_icon="🧠", layout="wide")
+# Configuração da página (Isso muda o título na aba do navegador e o ícone)
+st.set_page_config(
+    page_title="Gemini PRO 2026", 
+    page_icon="🔥", 
+    layout="centered"
+)
 
-# 2. PERSONALIDADE COMPLETA (INSTRUÇÃO DE SISTEMA)
-instrucao_sistema = """
-Você é um Mentor Sênior em Psicopedagogia e Neuropsicopedagogia Clínica. 
-Sua atuação é uma síntese entre a Epistemologia Convergente, a Psicogenética (Piaget, Vygotsky, Wallon) e as Neurociências Aplicadas à Educação.
+# Estilo CSS para mudar a cor do cabeçalho (Opcional)
+st.markdown("""
+    <style>
+    .stApp {
+        background-color: #0e1117;
+    }
+    h1 {
+        color: #4facfe;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-[DOMÍNIOS DE CONHECIMENTO]
-- Funções Executivas, Sistemas Atencionais, Processamento Sensorial, Linguagem e Memória.
-- Referencial: Jorge Visca, Sara Paín, Alicia Fernández, Nádia Bossa, Simone Sampaio.
-- Nosologia: DSM-5-TR.
-
-[DIRETRIZES DE RESPOSTA OBRIGATÓRIAS]
-1. PERFIL NEUROCOGNITIVO: Habilidades comprometidas ou preservadas.
-2. LEITURA PSICOPEDAGÓGICA CLÁSSICA: Vínculo (Visca/Paín) e estágio de desenvolvimento (Piaget/Wallon).
-3. AVALIAÇÃO INSTRUMENTAL SUGERIDA: Testes de Simone Sampaio ou Provas Operatórias.
-4. ESTRATÉGIAS DE NEUROINTERVENÇÃO: Baseadas em Neuroplasticidade.
-
-[RESTRIÇÕES] Mantenha o rigor terminológico e a anonimização dos dados.
-"""
-
-# 3. CONEXÃO ESTÁVEL (CORREÇÃO DO ERRO 404)
-try:
-    if "GOOGLE_API_KEY" not in st.secrets:
-        st.error("Chave API não encontrada nos Secrets!")
-    else:
-        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        
-        # AJUSTE CRUCIAL: Chamando apenas o nome do modelo sem prefixos extras
-        model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
-            system_instruction=instrucao_sistema
-        )
-except Exception as e:
-    st.error(f"Erro na conexão: {e}")
-
-# 4. GESTÃO DE MEMÓRIA
-if "chat_session" not in st.session_state:
-    st.session_state.chat_session = model.start_chat(history=[])
-
-# 5. INTERFACE (BARRA LATERAL)
+# Barra Lateral
 with st.sidebar:
-    st.title("📂 Central de Supervisão")
-    st.info("Modelo Ativo: Gemini 1.5 Flash (Estável)")
-    arquivo_upload = st.file_uploader("Subir PDF ou Imagem", type=["png", "jpg", "jpeg", "pdf"])
-    
-    if st.button("🗑️ Nova Supervisão"):
-        st.session_state.chat_session = model.start_chat(history=[])
+    st.title("⚙️ Configurações")
+    st.info("Este assistente utiliza o modelo Gemini 3 Flash da Google.")
+    if st.button("Limpar Histórico"):
+        st.session_state.chat = []
         st.rerun()
 
-st.title("🧠 Mentor Neuropsicopedagógico Sênior")
+# Título Principal
+st.title("🚀 Meu Super Assistente")
+st.subheader("IA de Última Geração")
 
-# 6. EXIBIÇÃO DO HISTÓRICO
-for mensagem in st.session_state.chat_session.history:
-    role = "user" if mensagem.role == "user" else "assistant"
-    with st.chat_message(role):
-        st.markdown(mensagem.parts[0].text)
+# --- O restante do código de conexão e chat continua igual ---
+CHAVE_API = st.secrets["GOOGLE_API_KEY"]
+genai.configure(api_key=CHAVE_API)
+model = genai.GenerativeModel('models/gemini-3-flash-preview')
 
-# 7. INTERAÇÃO E PROCESSAMENTO
-if prompt := st.chat_input("Descreva o caso clínico..."):
+if "chat" not in st.session_state:
+    st.session_state.chat = []
+
+for m in st.session_state.chat:
+    with st.chat_message(m["role"]):
+        st.markdown(m["content"])
+
+if prompt := st.chat_input("Pergunte qualquer coisa..."):
+    st.session_state.chat.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
     
     try:
-        conteudo_envio = [prompt]
-        
-        if arquivo_upload:
-            if arquivo_upload.type == "application/pdf":
-                conteudo_envio.append({
-                    "mime_type": "application/pdf",
-                    "data": arquivo_upload.getvalue()
-                })
-            else:
-                img = Image.open(arquivo_upload)
-                conteudo_envio.append(img)
-
-        with st.spinner("Analisando caso clínico..."):
-            response = st.session_state.chat_session.send_message(conteudo_envio)
-        
+        response = model.generate_content(prompt)
         with st.chat_message("assistant"):
+            st.markdown(response.text)
+        st.session_state.chat.append({"role": "assistant", "content": response.text})
+    except Exception as e:
+        st.error(f"Erro: {e}")
             st.markdown(response.text)
             
     except Exception as e:
         st.error(f"Erro detalhado: {e}")
+
