@@ -2,7 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
-# 1. CONFIGURAÇÃO VISUAL (Tons pastéis)
+# 1. CONFIGURAÇÃO VISUAL
 st.set_page_config(page_title="Mentor Neuropsicopedagógico", page_icon="🧠", layout="centered")
 
 st.markdown("""
@@ -14,7 +14,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. PERSONALIDADE (Instrução de Sistema com aspas triplas corrigidas)
+# 2. PERSONALIDADE (CORRIGIDA COM ASPAS TRIPLAS)
 instrucao_sistema = """
 Você é um Mentor de Alto Nível em Psicopedagogia Clínica. Sua prática é fundamentada na Epistemologia Convergente (Jorge Visca), integrando Piaget, Vygotsky e Wallon. Utilize o DSM-5-TR e as Neurociências para embasamento biológico, mas mantenha a escuta clínica sobre a subjetividade do aprender.
 
@@ -27,17 +27,17 @@ ESTRUTURA DE RESPOSTA OBRIGATÓRIA:
 RESTRIÇÕES: Trate dados de forma anônima e ofereça apenas Hipóteses Diagnósticas.
 """
 
-# 3. CONEXÃO COM A API
+# 3. CONEXÃO COM A API (NOME DO MODELO CORRIGIDO PARA EVITAR ERRO 404)
 CHAVE_API = st.secrets["GOOGLE_API_KEY"]
 genai.configure(api_key=CHAVE_API)
 
-# Nome do modelo corrigido para evitar erro 404
+# Aqui removemos o "models/" que causava o erro 404 em algumas versões
 model = genai.GenerativeModel(
     model_name='gemini-1.5-flash',
     system_instruction=instrucao_sistema
 )
 
-# 4. MEMÓRIA DO CHAT
+# 4. GESTÃO DE MEMÓRIA
 if "chat_session" not in st.session_state:
     st.session_state.chat_session = model.start_chat(history=[])
 
@@ -52,13 +52,13 @@ with st.sidebar:
 st.title("🧠 Mentor Neuropsicopedagógico")
 st.subheader("Consultoria Clínica Especializada")
 
-# 6. EXIBIÇÃO
+# 6. EXIBIÇÃO DA CONVERSA
 for mensagem in st.session_state.chat_session.history:
     role = "user" if mensagem.role == "user" else "assistant"
     with st.chat_message(role):
         st.markdown(mensagem.parts[0].text)
 
-# 7. INTERAÇÃO
+# 7. INTERAÇÃO E TRATAMENTO DE ERROS (INCLUINDO ERRO 429)
 if prompt := st.chat_input("Descreva o caso do paciente..."):
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -78,6 +78,7 @@ if prompt := st.chat_input("Descreva o caso do paciente..."):
             
     except Exception as e:
         if "429" in str(e):
-            st.warning("Cota temporária excedida. Aguarde 30 segundos e tente novamente.")
+            st.warning("O Google está processando muitas requisições. Por favor, aguarde 30 segundos e clique em enviar novamente.")
         else:
             st.error(f"Erro clínico: {e}")
+
