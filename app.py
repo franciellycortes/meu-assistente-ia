@@ -1,63 +1,59 @@
 import streamlit as st
 import google.generativeai as genai
+from PIL import Image
 
-# Configuração da página (Isso muda o título na aba do navegador e o ícone)
+# 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(
-    page_title="Gemini PRO 2026", 
-    page_icon="🔥", 
-    layout="centered"
+    page_title="Mentor Neuropsicopedagógico Sênior", 
+    page_icon="🧠", 
+    layout="wide"
 )
 
-# Estilo CSS para mudar a cor do cabeçalho (Opcional)
+# Estilização para ambiente clínico
 st.markdown("""
     <style>
-    .stApp {
-        background-color: #0e1117;
-    }
-    h1 {
-        color: #4facfe;
-    }
+    .stApp { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); }
+    .stChatMessage { border-radius: 12px; border: 1px solid #dee2e6; background-color: white; }
+    h1 { color: #2c3e50; }
     </style>
     """, unsafe_allow_html=True)
 
-# Barra Lateral
-with st.sidebar:
-    st.title("⚙️ Configurações")
-    st.info("Este assistente utiliza o modelo Gemini 3 Flash da Google.")
-    if st.button("Limpar Histórico"):
-        st.session_state.chat = []
-        st.rerun()
+# 2. PERSONALIDADE SÊNIOR (INSTRUÇÃO DE SISTEMA)
+instrucao_sistema = """
+Você é um Mentor Sênior em Psicopedagogia e Neuropsicopedagogia Clínica. 
+Sua atuação é uma síntese entre a Epistemologia Convergente, a Psicogenética (Piaget, Vygotsky, Wallon) e as Neurociências Aplicadas à Educação (Neuroaprendizagem). 
+Seu foco é identificar as barreiras de aprendizagem sob a ótica biológica, cognitiva e emocional.
 
-# Título Principal
-st.title("🚀 Meu Super Assistente")
-st.subheader("IA de Última Geração")
+[DOMÍNIOS DE CONHECIMENTO ESPECÍFICOS]
+- Habilidades Cognitivas: Funções Executivas (Memória de trabalho, controle inibitório, flexibilidade, planejamento), Sistemas Atencionais, Processamento Sensorial, Linguagem e Memória.
+- Referencial Teórico-Clínico: Jorge Visca (Matrizes), Sara Paín (Dimensões), Alicia Fernández (Desejo/Saber), Nádia Bossa (Diagnóstico), Simone Sampaio (Prática/Testes).
+- Desenvolvimento: Estágios de Piaget, ZDP de Vygotsky e a Motricidade/Afetividade de Wallon.
+- Nosologia: Critérios do DSM-5-TR para Transtornos do Neurodesenvolvimento.
 
-# --- O restante do código de conexão e chat continua igual ---
-CHAVE_API = st.secrets["GOOGLE_API_KEY"]
-genai.configure(api_key=CHAVE_API)
-model = genai.GenerativeModel('models/gemini-3-flash-preview')
+[DIRETRIZES DE RESPOSTA OBRIGATÓRIAS]
+Para cada caso, siga obrigatoriamente esta estrutura:
+1. PERFIL NEUROCOGNITIVO: Descreva habilidades cognitivas (ex: memória de trabalho, atenção) comprometidas ou preservadas.
+2. LEITURA PSICOPEDAGÓGICA CLÁSSICA: Interprete o vínculo com a aprendizagem (Visca/Paín) e o estágio de desenvolvimento (Piaget/Wallon).
+3. AVALIAÇÃO INSTRUMENTAL SUGERIDA: Indique testes de Simone Sampaio ou Provas Operatórias adequados à queixa.
+4. ESTRATÉGIAS DE NEUROINTERVENÇÃO: Sugira atividades que utilizem a Neuroplasticidade (repetição, novidade, desafio crescente).
 
-if "chat" not in st.session_state:
-    st.session_state.chat = []
+[RESTRIÇÕES] Mantenha o rigor terminológico (use "hipótese diagnóstica") e garanta a anonimização dos dados.
+"""
 
-for m in st.session_state.chat:
-    with st.chat_message(m["role"]):
-        st.markdown(m["content"])
+# 3. CONEXÃO COM O GEMINI 1.5 FLASH
+try:
+    if "GOOGLE_API_KEY" not in st.secrets:
+        st.error("ERRO: Chave API não configurada nos Secrets do Streamlit.")
+    else:
+        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+        
+        # Configuração do modelo focada em estabilidade (v1 estável)
+        model = genai.GenerativeModel(
+            model_name='gemini-1.5-flash',
+            system_instruction=instrucao_sistema
+        )
+except Exception as e:
+    st.error(f"Erro na conexão: {e}")
 
-if prompt := st.chat_input("Pergunte qualquer coisa..."):
-    st.session_state.chat.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-    
-    try:
-        response = model.generate_content(prompt)
-        with st.chat_message("assistant"):
-            st.markdown(response.text)
-        st.session_state.chat.append({"role": "assistant", "content": response.text})
-    except Exception as e:
-        st.error(f"Erro: {e}")
-            st.markdown(response.text)
-            
-    except Exception as e:
-        st.error(f"Erro detalhado: {e}")
-
+# 4. GESTÃO DE MEMÓRIA
+if "chat_session" not in st.session_state:
