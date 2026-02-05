@@ -1,99 +1,63 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
-import io
 
-# 1. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="Mentor Neuropsicopedagógico", page_icon="🧠", layout="wide")
+# 1. SETUP INICIAL
+st.set_page_config(page_title="Mentor Neuropsicopedagógico", page_icon="🧠")
 
-# Estilo Visual
-st.markdown("""
-    <style>
-    .stApp { background: linear-gradient(135deg, #e0f7fa 0%, #f3e5f5 50%, #fce4ec 100%); }
-    [data-testid="stSidebar"] { background-color: #f1f8e9 !important; }
-    .stChatMessage { border-radius: 15px; border: 1px solid #d1d9e6; background-color: white; }
-    h1 { color: #4a148c; }
-    </style>
-    """, unsafe_allow_html=True)
+# 2. PERSONALIDADE
+instrucao = (
+    "Você é um Mentor em Psicopedagogia Clínica (Epistemologia Convergente). "
+    "Analise sob 4 eixos: Cognitivo, Socioafetivo, Instrumental e Terapêutico."
+)
 
-# 2. PERSONALIDADE TÉCNICA
-instrucao_sistema = """
-Você é um Mentor de Alto Nível em Psicopedagogia Clínica, fundamentado na Epistemologia Convergente (Jorge Visca).
-Sua análise deve integrar Piaget, Vygotsky, Wallon e Alicia Fernández.
-
-ESTRUTURA OBRIGATÓRIA DE RESPOSTA:
-1. Eixo Cognitivo (Piaget/Neuro): Estágio e funções executivas.
-2. Eixo Socioafetivo (Vygotsky/Wallon/Fernández): Mediação e vínculo.
-3. Eixo Instrumental (Sampaio/Visca): Sugestão de testes (EOCA, Provas Operatórias).
-4. Eixo Terapêutico: Hipóteses e estratégias práticas.
-"""
-
-# 3. CONEXÃO COM A API (ESTÁVEL)
+# 3. CONEXÃO DIRETA (SEM PREFIXOS)
 try:
-    CHAVE_API = st.secrets["GOOGLE_API_KEY"]
-    genai.configure(api_key=CHAVE_API)
-    
-    # Mudança para evitar o erro 404: usamos o modelo sem o prefixo v1beta
-    model = genai.GenerativeModel(
-        model_name='gemini-1.5-flash',
-        system_instruction=instrucao_sistema
-    )
+    if "GOOGLE_API_KEY" not in st.secrets:
+        st.error("Chave API não encontrada no Streamlit Secrets!")
+    else:
+        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+        # Aqui está o segredo: chamamos o modelo de forma simplificada
+        model = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
     st.error(f"Erro na conexão: {e}")
 
-# 4. GESTÃO DE MEMÓRIA
-if "chat_session" not in st.session_state:
-    st.session_state.chat_session = model.start_chat(history=[])
+# 4. MEMÓRIA
+if "chat" not in st.session_state:
+    st.session_state.chat = model.start_chat(history=[])
 
 # 5. BARRA LATERAL
 with st.sidebar:
-    st.title("📂 Painel Clínico")
-    st.info("Modelo Estável: Gemini 1.5 Flash")
-    arquivo_upload = st.file_uploader("Subir Relatório ou Imagem", type=["png", "jpg", "jpeg", "pdf"])
-    
-    st.divider()
-    if st.button("🗑️ Nova Supervisão"):
-        st.session_state.chat_session = model.start_chat(history=[])
-        st.rerun()
+    st.title("📂 Painel")
+    arquivo = st.file_uploader("Subir arquivo", type=["png", "jpg", "jpeg", "pdf"])
 
 st.title("🧠 Mentor Neuropsicopedagógico")
 
-# 6. HISTÓRICO
-for mensagem in st.session_state.chat_session.history:
-    role = "user" if mensagem.role == "user" else "assistant"
-    with st.chat_message(role):
-        st.markdown(mensagem.parts[0].text)
+# 6. EXIBIÇÃO
+for msg in st.session_state.chat.history:
+    with st.chat_message("user" if msg.role == "user" else "assistant"):
+        st.markdown(msg.parts[0].text)
 
-# 7. INTERAÇÃO E PROCESSAMENTO
-if prompt := st.chat_input("Descreva o caso clínico..."):
+# 7. INTERAÇÃO
+if prompt := st.chat_input("Descreva o caso..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
     try:
-        conteudo_envio = [prompt]
+        # Enviamos a instrução de personalidade junto com cada prompt para segurança
+        full_query = f"Instrução: {instrucao}\n\nCaso: {prompt}"
         
-        if arquivo_upload:
-            if arquivo_upload.type == "application/pdf":
-                # Tratamento específico para PDF enviado como documento
-                conteudo_envio.append({
-                    "mime_type": "application/pdf",
-                    "data": arquivo_upload.getvalue()
-                })
+        conteudo = [full_query]
+        if arquivo:
+            if arquivo.type == "application/pdf":
+                conteudo.append({"mime_type": "application/pdf", "data": arquivo.read()})
             else:
-                img = Image.open(arquivo_upload)
-                conteudo_envio.append(img)
+                conteudo.append(Image.open(arquivo))
 
-        with st.spinner("Analisando eixos clínicos..."):
-            # Envio forçando o uso do modelo configurado
-            response = st.session_state.chat_session.send_message(conteudo_envio)
-        
+        response = st.session_state.chat.send_message(conteudo)
         with st.chat_message("assistant"):
             st.markdown(response.text)
             
     except Exception as e:
-        if "404" in str(e):
-            st.error("Erro 404: O sistema não encontrou o modelo. Verifique se o arquivo 'requirements.txt' está atualizado no seu GitHub.")
-        elif "429" in str(e):
-            st.warning("Limite de cota atingido. Aguarde 60 segundos.")
-        else:
-            st.error(f"Erro no processamento: {e}")
+        st.error(f"Erro detalhado: {e}")
+
