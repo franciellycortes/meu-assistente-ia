@@ -35,7 +35,7 @@ CHAVE_API = st.secrets["GOOGLE_API_KEY"]
 genai.configure(api_key=CHAVE_API)
 
 model = genai.GenerativeModel(
-    model_name='models/gemini-1.5-flash',
+    model_name=model_name='gemini-2.0-flash',
     system_instruction=instrucao_sistema,
     tools=[{"google_search_retrieval": {}}]
 )
@@ -91,4 +91,5 @@ if prompt := st.chat_input("Descreve o caso ou coloca a tua dúvida técnica..."
             
     except Exception as e:
         st.error(f"Erro clínico: {e}")
+
 
