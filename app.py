@@ -2,7 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
-# 1. CONFIGURAÇÃO VISUAL (Tons pastéis: Azul, Rosa, Roxo e Verde)
+# 1. CONFIGURAÇÃO VISUAL (Tons pastéis)
 st.set_page_config(page_title="Mentor Neuropsicopedagógico", page_icon="🧠", layout="centered")
 
 st.markdown("""
@@ -14,9 +14,9 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. PERSONALIDADE DE ALTO NÍVEL (Instrução de Sistema)
+# 2. PERSONALIDADE (Instrução de Sistema com aspas triplas corrigidas)
 instrucao_sistema = """
-Você é um Mentor de Alto Nível em Psicopedagogia Clínica. Sua prática é fundamentada na Epistemologia Convergente (Jorge Visca), integrando Piaget, Vygotsky e Wallon. Utilize o DSM-5-TR e as Neurociências, mas mantenha a escuta clínica sobre a subjetividade do aprender.
+Você é um Mentor de Alto Nível em Psicopedagogia Clínica. Sua prática é fundamentada na Epistemologia Convergente (Jorge Visca), integrando Piaget, Vygotsky e Wallon. Utilize o DSM-5-TR e as Neurociências para embasamento biológico, mas mantenha a escuta clínica sobre a subjetividade do aprender.
 
 ESTRUTURA DE RESPOSTA OBRIGATÓRIA:
 1. Eixo Cognitivo (Piaget/Neuro): Estágio de desenvolvimento e funções executivas.
@@ -24,21 +24,18 @@ ESTRUTURA DE RESPOSTA OBRIGATÓRIA:
 3. Eixo Instrumental (Sampaio/Visca): Sugestão de testes (EOCA, Provas Operatórias, etc).
 4. Eixo Terapêutico: Hipóteses Diagnósticas e sugestões de intervenção prática.
 
-RESTRIÇÕES: Trate dados de forma anônima e nunca dê diagnósticos definitivos.
+RESTRIÇÕES: Trate dados de forma anônima e ofereça apenas Hipóteses Diagnósticas.
 """
 
-# 3. CONEXÃO SEGURA COM A API
-try:
-    CHAVE_API = st.secrets["GOOGLE_API_KEY"]
-    genai.configure(api_key=CHAVE_API)
-    
-    # Modelo atualizado para evitar erro 404 e 429
-    model = genai.GenerativeModel(
-        model_name='gemini-1.5-flash',
-        system_instruction=instrucao_sistema
-    )
-except Exception as e:
-    st.error(f"Erro na chave API: {e}")
+# 3. CONEXÃO COM A API
+CHAVE_API = st.secrets["GOOGLE_API_KEY"]
+genai.configure(api_key=CHAVE_API)
+
+# Nome do modelo corrigido para evitar erro 404
+model = genai.GenerativeModel(
+    model_name='gemini-1.5-flash',
+    system_instruction=instrucao_sistema
+)
 
 # 4. MEMÓRIA DO CHAT
 if "chat_session" not in st.session_state:
@@ -81,6 +78,6 @@ if prompt := st.chat_input("Descreva o caso do paciente..."):
             
     except Exception as e:
         if "429" in str(e):
-            st.warning("O Google está sobrecarregado. Aguarde 30 segundos e tente novamente.")
+            st.warning("Cota temporária excedida. Aguarde 30 segundos e tente novamente.")
         else:
-            st.error(f"Ocorreu um problema: {e}")
+            st.error(f"Erro clínico: {e}")
