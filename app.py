@@ -2,57 +2,89 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
-# 1. SETUP DA PÁGINA
-st.set_page_config(page_title="Mentor Neuropsicopedagógico", page_icon="🧠", layout="wide")
+# 1. CONFIGURAÇÃO DA PÁGINA
+st.set_page_config(page_title="Mentor Neuropsicopedagógico v3", page_icon="🧠", layout="wide")
 
-# 2. PERSONALIDADE (INSTRUÇÃO DE SISTEMA)
+# Estilo visual para ambiente clínico
+st.markdown("""
+    <style>
+    .stApp { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+    .stChatMessage { border-radius: 15px; border: 1px solid #d1d9e6; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 2. PERSONALIDADE COMPLETA (EPISTEMOLOGIA CONVERGENTE)
 instrucao_sistema = """
-Você é um Mentor de Alto Nível em Psicopedagogia Clínica (Epistemologia Convergente).
-Estruture suas respostas em 4 eixos: 
-1. Eixo Cognitivo
-2. Eixo Socioafetivo
-3. Eixo Instrumental
-4. Eixo Terapêutico
+Você é um Mentor de Alto Nível em Psicopedagogia Clínica, com expertise profunda na Epistemologia Convergente de Jorge Visca. 
+Sua função é supervisionar casos clínicos integrando as três linhas de convergência:
+
+1. ESCOLA GENÉTICA (Piaget): Análise dos estágios do desenvolvimento cognitivo e das Provas Operatórias.
+2. ESCOLA PSICANALÍTICA (Freud/Alicia Fernández): Análise da modalidade de aprendizagem, o desejo de saber e o vínculo com o objeto de conhecimento.
+3. PSICOLOGIA SOCIAL (Vygotsky/Pichon-Rivière): Análise da mediação, ZDP e o contexto socio-histórico.
+
+DIRETRIZES DE RESPOSTA (OBRIGATÓRIO SEGUIR ESTA ESTRUTURA):
+
+## 1. Eixo Cognitivo (O 'Poder')
+- Analisar estágio de pensamento (Pré-operatório, Operatório Concreto, Formal).
+- Avaliar funções executivas (Memória de trabalho, controle inibitório, flexibilidade).
+
+## 2. Eixo Socioafetivo (O 'Querer')
+- Avaliar o vínculo com o terapeuta e com a escola.
+- Analisar a afetividade conforme Wallon e o 'Desejo de Aprender' de Fernández.
+
+## 3. Eixo Instrumental (O 'Fazer')
+- Sugerir testes específicos: EOCA (Entrevista Operativa Centrada na Aprendizagem), Provas de Diagnóstico Operatório, Testes Projetivos Psicopedagógicos.
+- Interpretação de protocolos de Sampaio e Bossa.
+
+## 4. Eixo Terapêutico (Hipóteses e Intervenção)
+- Formular hipóteses diagnósticas (Dificuldade vs. Transtorno).
+- Propor estratégias de intervenção lúdica e mediação.
+
+NOTAS ÉTICAS: Mantenha sigilo absoluto. Não use nomes reais. Use terminologia do DSM-5-TR para neurodivergências quando aplicável.
 """
 
-# 3. CONEXÃO BLINDADA (AQUI ESTÁ A CORREÇÃO)
+# 3. CONEXÃO COM O GEMINI 2.0 FLASH (VERSÃO PROFISSIONAL)
 try:
     if "GOOGLE_API_KEY" not in st.secrets:
-        st.error("Chave API não encontrada!")
+        st.error("Chave API ausente!")
     else:
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
         
-        # Tentamos a chamada direta. O erro 404 ocorre quando o código 
-        # tenta usar 'models/gemini-1.5-flash'. Vamos usar apenas o nome:
+        # Chamada para o Gemini 2.0 Flash (Geração 3)
         model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
+            model_name='gemini-2.0-flash',
             system_instruction=instrucao_sistema
         )
 except Exception as e:
-    st.error(f"Erro na configuração: {e}")
+    st.error(f"Erro na inicialização: {e}")
 
-# 4. GESTÃO DE MEMÓRIA
+# 4. GESTÃO DE MEMÓRIA (CONTEXTO CLÍNICO)
 if "chat_session" not in st.session_state:
     st.session_state.chat_session = model.start_chat(history=[])
 
-# 5. INTERFACE
-st.title("🧠 Mentor Neuropsicopedagógico")
-
+# 5. BARRA LATERAL (CENTRAL DE INTELIGÊNCIA)
 with st.sidebar:
-    st.title("📂 Painel Clínico")
-    arquivo_upload = st.file_uploader("Subir PDF ou Imagem", type=["png", "jpg", "jpeg", "pdf"])
-    if st.button("🗑️ Nova Supervisão"):
+    st.title("📂 Central de Supervisão v3")
+    st.write("**Modelo:** Gemini 2.0 Flash")
+    
+    arquivo_upload = st.file_uploader("Anexar Relatórios ou Exames", type=["png", "jpg", "jpeg", "pdf"])
+    
+    st.divider()
+    if st.button("🗑️ Nova Supervisão (Limpar Memória)"):
         st.session_state.chat_session = model.start_chat(history=[])
         st.rerun()
 
-# Histórico
+st.title("🧠 Mentor Neuropsicopedagógico")
+st.caption("Supervisão Clínica baseada em Epistemologia Convergente")
+
+# 6. EXIBIÇÃO DO HISTÓRICO
 for msg in st.session_state.chat_session.history:
     role = "user" if msg.role == "user" else "assistant"
     with st.chat_message(role):
         st.markdown(msg.parts[0].text)
 
-# 6. INTERAÇÃO
-if prompt := st.chat_input("Descreva o caso clínico..."):
+# 7. INTERAÇÃO
+if prompt := st.chat_input("Descreva o caso do paciente aqui..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
@@ -64,13 +96,14 @@ if prompt := st.chat_input("Descreva o caso clínico..."):
             else:
                 conteudo.append(Image.open(arquivo_upload))
 
-        response = st.session_state.chat_session.send_message(conteudo)
+        with st.spinner("Analisando eixos clínicos..."):
+            response = st.session_state.chat_session.send_message(conteudo)
         
         with st.chat_message("assistant"):
             st.markdown(response.text)
             
     except Exception as e:
-        # Se der erro 404 novamente, o código vai imprimir o erro técnico exato para investigarmos
-        st.error(f"Erro técnico encontrado: {e}")
-
-
+        if "404" in str(e):
+            st.error("Erro 404: O modelo Gemini 2.0 ainda não está disponível na sua rota. Mude para 'gemini-1.5-flash' no código se persistir.")
+        else:
+            st.error(f"Erro no processamento: {e}")
