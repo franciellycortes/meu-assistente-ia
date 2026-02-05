@@ -2,68 +2,81 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 
-# Configuração da página
-st.set_page_config(page_title="Assistente Multimodal", page_icon="📸", layout="centered")
+# 1. CONFIGURAÇÃO DA PÁGINA E VISUAL
+st.set_page_config(page_title="Central IA Francielly", page_icon="🧠", layout="centered")
 
-# Estilos CSS (Cores pastéis)
 st.markdown("""
     <style>
     .stApp { background: linear-gradient(135deg, #e0f7fa 0%, #f3e5f5 50%, #fce4ec 100%); }
     [data-testid="stSidebar"] { background-color: #f1f8e9 !important; }
+    .stChatMessage { border-radius: 15px; }
     </style>
     """, unsafe_allow_html=True)
 
-# Conexão com a API
+# 2. CONEXÃO E FERRAMENTAS (Google Search)
 CHAVE_API = st.secrets["GOOGLE_API_KEY"]
 genai.configure(api_key=CHAVE_API)
-model = genai.GenerativeModel('models/gemini-3-flash-preview')
 
-# Barra Lateral com Upload
+# Aqui ativamos a "Personalidade" e a "Pesquisa Google"
+instrucao_sistema = "Você é o Assistente da Francielly. Você é inteligente, gentil e sempre busca informações atualizadas. Se não souber algo, use a pesquisa do Google."
+
+model = genai.GenerativeModel(
+    model_name='models/gemini-1.5-flash',
+    system_instruction=instrucao_sistema,
+    tools=[{"google_search_retrieval": {}}] # Ativa a pesquisa em tempo real
+)
+
+# 3. MEMÓRIA (Estado da Sessão)
+if "chat_session" not in st.session_state:
+    # Inicia a sessão de chat com memória nativa do Google
+    st.session_state.chat_session = model.start_chat(history=[])
+
+# 4. BARRA LATERAL
 with st.sidebar:
-    st.title("📁 Arquivos")
-    arquivo_upload = st.file_uploader("Suba uma imagem ou PDF", type=["png", "jpg", "jpeg", "pdf"])
+    st.title("🛠️ Painel de Funções")
+    arquivo_upload = st.file_uploader("Analisar Imagem ou PDF", type=["png", "jpg", "jpeg", "pdf"])
     
-    if st.button("Limpar Histórico"):
-        st.session_state.chat = []
+    st.divider()
+    if st.button("🗑️ Limpar Memória"):
+        st.session_state.chat_session = model.start_chat(history=[])
         st.rerun()
+    
+    # Função de Download do Histórico
+    if len(st.session_state.chat_session.history) > 0:
+        texto_chat = ""
+        for msg in st.session_state.chat_session.history:
+            texto_chat += f"{msg.role}: {msg.parts[0].text}\n"
+        st.download_button("📥 Baixar Conversa", texto_chat, file_name="conversa_ia.txt")
 
-st.title("✨ Assistente Inteligente")
-st.subheader("Envie fotos ou documentos para eu analisar!")
+st.title("✨ Minha IA Completa")
 
-if "chat" not in st.session_state:
-    st.session_state.chat = []
+# 5. EXIBIR HISTÓRICO (Memória de Contexto)
+for mensagem in st.session_state.chat_session.history:
+    with st.chat_message("user" if mensagem.role == "user" else "assistant"):
+        st.markdown(mensagem.parts[0].text)
 
-# Exibir histórico
-for m in st.session_state.chat:
-    with st.chat_message(m["role"]):
-        st.markdown(m["content"])
-
-# Lógica de interação
-if prompt := st.chat_input("O que deseja saber sobre o arquivo?"):
-    st.session_state.chat.append({"role": "user", "content": prompt})
+# 6. LÓGICA DE INTERAÇÃO
+if prompt := st.chat_input("Como posso ajudar hoje?"):
     with st.chat_message("user"):
         st.markdown(prompt)
     
     try:
-        conteudo_para_enviar = [prompt]
+        conteudo_envio = [prompt]
         
-        # Se houver um arquivo, adicionamos ele à lista de envio
-        if arquivo_upload is not None:
+        # Processamento de Arquivos
+        if arquivo_upload:
             if arquivo_upload.type == "application/pdf":
-                # Para PDF, usamos os bytes diretamente
-                pdf_data = arquivo_upload.read()
-                conteudo_para_enviar.append({"mime_type": "application/pdf", "data": pdf_data})
+                conteudo_envio.append({"mime_type": "application/pdf", "data": arquivo_upload.read()})
             else:
-                # Para imagem, usamos a biblioteca PIL
                 img = Image.open(arquivo_upload)
-                conteudo_para_enviar.append(img)
+                conteudo_envio.append(img)
 
-        response = model.generate_content(conteudo_para_enviar)
+        # Resposta com Memória e Pesquisa
+        response = st.session_state.chat_session.send_message(conteudo_envio)
         
         with st.chat_message("assistant"):
             st.markdown(response.text)
-        st.session_state.chat.append({"role": "assistant", "content": response.text})
-        
+            
     except Exception as e:
-        st.error(f"Erro ao processar: {e}")
+        st.error(f"Erro: {e}")
 
