@@ -23,7 +23,7 @@ try:
     
     # Removida a ferramenta de Search para eliminar o erro 404
     model = genai.GenerativeModel(
-        model_name='gemini-2.0-flash',
+        model_name='gemini-1.5-flash',
         system_instruction=instrucao_sistema
     )
 except Exception as e:
@@ -78,3 +78,4 @@ if prompt := st.chat_input("Descreva o caso do paciente..."):
             st.warning("Aguarde 60 segundos. O limite de uso gratuito foi atingido.")
         else:
             st.error(f"Erro de conexão: {e}")
+
