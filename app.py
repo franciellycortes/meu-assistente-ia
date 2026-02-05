@@ -10,23 +10,21 @@ instrucao_sistema = """
 Você é um Mentor de Alto Nível em Psicopedagogia Clínica, fundamentado na Epistemologia Convergente (Jorge Visca).
 Integre: Piaget (Cognição), Vygotsky (ZDP), Wallon (Afetividade), Alicia Fernández (Desejo de Aprender) e Neurociências (DSM-5-TR).
 
-ESTRUTURA DE RESPOSTA:
+ESTRUTURA DE RESPOSTA OBRIGATÓRIA:
 1. Eixo Cognitivo: Estágio e funções executivas.
 2. Eixo Socioafetivo: Mediação e vínculo com o saber.
 3. Eixo Instrumental: Sugestão de testes (EOCA, Provas Operatórias).
 4. Eixo Terapêutico: Hipóteses e estratégias práticas.
 """
 
-# 3. CONFIGURAÇÃO DO MODELO COM GOOGLE SEARCH
+# 3. CONFIGURAÇÃO DO MODELO (VERSÃO ESTÁVEL)
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
     
-    # Criamos o modelo chamando o nome correto para evitar o erro 404
-    # Adicionamos a ferramenta de pesquisa (Google Search) aqui
+    # Removida a ferramenta de Search para eliminar o erro 404
     model = genai.GenerativeModel(
         model_name='gemini-2.0-flash',
-        system_instruction=instrucao_sistema,
-        tools=[{"google_search_retrieval": {}}] 
+        system_instruction=instrucao_sistema
     )
 except Exception as e:
     st.error(f"Erro na configuração: {e}")
@@ -37,13 +35,13 @@ if "chat_session" not in st.session_state:
 
 # 5. BARRA LATERAL COMPLETA
 with st.sidebar:
-    st.title("📂 Central de Inteligência")
+    st.title("📂 Painel Clínico")
     st.info("Modelo: Gemini 2.0 Flash (Geração 3)")
     
     arquivo_upload = st.file_uploader("Subir Relatório ou Imagem", type=["png", "jpg", "jpeg", "pdf"])
     
     st.divider()
-    if st.button("🗑️ Limpar Contexto (Nova Supervisão)"):
+    if st.button("🗑️ Limpar Supervisão"):
         st.session_state.chat_session = model.start_chat(history=[])
         st.rerun()
 
@@ -56,7 +54,7 @@ for mensagem in st.session_state.chat_session.history:
         st.markdown(mensagem.parts[0].text)
 
 # 7. INTERAÇÃO E PROCESSAMENTO
-if prompt := st.chat_input("Descreva o caso clínico..."):
+if prompt := st.chat_input("Descreva o caso do paciente..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
@@ -64,11 +62,12 @@ if prompt := st.chat_input("Descreva o caso clínico..."):
         conteudo = [prompt]
         if arquivo_upload:
             if arquivo_upload.type == "application/pdf":
+                # Nota: Para PDFs complexos, pode ser necessário tratamento adicional,
+                # mas o Gemini 1.5/2.0 costuma aceitar o envio direto.
                 conteudo.append({"mime_type": "application/pdf", "data": arquivo_upload.read()})
             else:
                 conteudo.append(Image.open(arquivo_upload))
 
-        # O modelo processará o prompt usando a memória e a pesquisa em tempo real
         response = st.session_state.chat_session.send_message(conteudo)
         
         with st.chat_message("assistant"):
@@ -76,8 +75,6 @@ if prompt := st.chat_input("Descreva o caso clínico..."):
             
     except Exception as e:
         if "429" in str(e):
-            st.warning("Limite de cota do Gemini 2.0 atingido. Aguarde 60 segundos.")
-        elif "404" in str(e):
-            st.error("Erro 404: O modelo não suportou esta combinação de ferramentas no momento.")
+            st.warning("Aguarde 60 segundos. O limite de uso gratuito foi atingido.")
         else:
-            st.error(f"Ocorreu um erro: {e}")
+            st.error(f"Erro de conexão: {e}")
