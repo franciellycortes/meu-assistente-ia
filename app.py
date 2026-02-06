@@ -26,7 +26,7 @@ genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 # Configuração do modelo
 model = genai.GenerativeModel(
-    model_name='gemini-1.5-flash',
+    model_name='models/gemini-1.5-flash'
     system_instruction=instrucao_sistema
 )
 
@@ -58,3 +58,4 @@ if prompt := st.chat_input("Descreva o caso clínico para análise..."):
     except Exception as e:
         st.error(f"Erro na API: {e}")
         st.info("Dica: Verifique se sua chave do Google AI Studio tem permissão para o modelo Gemini 1.5 Flash.")
+
